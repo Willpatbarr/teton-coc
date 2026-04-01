@@ -54,7 +54,21 @@ jobs:
       run: |
         cd directorydata_service
         python manage.py runserver --noreload &
+    - name: Wait for readiness
+      run: |
+        for i in $(seq 1 30); do
+          status=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/data/all || true)
+          if [ "$status" = "200" ]; then
+            break
+          fi
+          sleep 1
+        done
+        if [ "$status" != "200" ]; then
+          exit 1
+        fi
     - name: Run tests
+      env:
+        ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       run: |
         pytest
 
